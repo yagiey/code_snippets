@@ -12,6 +12,7 @@
  * @param {string} input  - UTF-8 decoded JS string
  * @param {Object} [opts]
  * @param {boolean} [opts.strict=true]          - RFC4180に厳格に従うモード
+ * @param {boolean} [opts.tsvMode=false]         - TSVモード
  * @param {boolean} [opts.allowBareLF=false]    - 単独LFをレコードの終わりとして扱う
  * @param {boolean} [opts.allowBareCR=false]    - 単独CRをレコードの終わりとして扱う
  * @returns {string[][]} 行のコレクション
@@ -19,14 +20,17 @@
  */
 function parseCSV(input, opts = {}) {
     const strict = opts.strict !== false;
+    const tsvMode = !!opts.tsvMode;
     const allowBareLF = !!opts.allowBareLF;
     const allowBareCR = !!opts.allowBareCR;
 
     const COMMA = ",";
+    const TAB = "\t";
     const DQ = '"';
     const CR = "\r";
     const LF = "\n";
 
+    const SEPARATOR = tsvMode ? TAB : COMMA;
     const rows = [];
     let row = [];
     let field = "";
@@ -79,7 +83,7 @@ function parseCSV(input, opts = {}) {
                     i += 1;
                     break;
                 }
-                if (ch === COMMA) {
+                if (ch === SEPARATOR) {
                     // 空のフィールドだった
                     endField();
                     i += 1;
@@ -126,7 +130,7 @@ function parseCSV(input, opts = {}) {
             }
 
             case STATE.IN_FIELD: {
-                if (ch === COMMA) {
+                if (ch === SEPARATOR) {
                     endField();
                     state = STATE.START_FIELD;
                     i += 1;
@@ -187,7 +191,7 @@ function parseCSV(input, opts = {}) {
                     i += 1;
                     break;
                 }
-                if (ch === COMMA) {
+                if (ch === SEPARATOR) {
                     endField();
                     state = STATE.START_FIELD;
                     i += 1;
@@ -257,3 +261,12 @@ const csv = [
 ].join('\r\n');
 
 console.log(parseCSV(csv, { strict: false, allowBareLF: false, allowBareCR: false }));
+
+const tsv = [
+   'city,name,comment'
+  ,"\"東京\"\t\"山田\t 太郎\"\t\"彼は\"\"優秀\"\"です\\n改行もOK\""
+  ,"大阪\t佐藤\t\"item1\r\nitem2\""
+  ,'福岡\t\t空のフィールド'
+].join('\r\n');
+
+console.log(parseCSV(tsv, { strict: false, tsvMode: true, allowBareLF: false, allowBareCR: false }));
